@@ -1,9 +1,9 @@
-# phantom
+# SPKG
 A SPWN package manager written in SPWN.
 
 # Usage
 ```
-phantom install hello_world
+spkg install hello_world
 ```
 Now, run:
 ```
