@@ -1,9 +1,9 @@
-# SPKG
+# SPGHTT
 A SPWN package manager written in SPWN.
 
 # Usage
 ```
-spkg install hello_world
+spghtt install hello_world
 ```
 Now, run:
 ```
