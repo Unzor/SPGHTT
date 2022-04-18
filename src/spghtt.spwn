@@ -93,14 +93,14 @@ let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
 match command {
   =="install\r": (){
     let package = $.get_input("What package would you like to install? ")
-	package_d = get_package(package.trim("\r"))
+    package_d = get_package(package.trim("\r"))
     path("libraries/" + package.trim("\r")).mkdir()
     $.writefile("./libraries/" + package.trim("\r") + "/" + package_d.name, $.b64decode($.b64decode(package_d.file)))
   }(),
   
   =="uninstall\r": (){
 	let package = $.get_input("What package would you like to uninstall? ")
-	$.rmdir_all("libraries/" + package.trim("\r"))
+	path("libraries/" + package.trim("\r")).rmdir(true)
   }(),
   
   =="publish\r": (){
@@ -112,6 +112,5 @@ match command {
 				db.set(pname.trim("\r"), encoded)
 		}
   }()
-  
   else: $.print("Invalid action!")
 }
