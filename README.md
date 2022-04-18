@@ -2,7 +2,7 @@
 A SPWN package manager written in SPWN.
 
 # Usage
-Run this:
+First, add C:\Program Files (x86)\spghtt to your PATH in enviroment variables, then run this in CMD:
 ```
 spghtt
 ```
