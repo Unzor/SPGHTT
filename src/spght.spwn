@@ -1,0 +1,117 @@
+if ($.fileexists("libraries") == false) {
+	path("./libraries").mkdir()
+}
+
+websocket = (wsurl, msgs) {
+    url = "https://http-ws.seven7four4.repl.co/ws"
+	let body
+	if "timeout" in msgs && "endAfter" in msgs {
+			body = '{"url":"{}","messages":"{}", "timeout":"{}", "endAfter":"{}"}'.fmt([wsurl, msgs.messages, msgs.timeout, msgs.endAfter])
+	}
+	else if "timeout" in msgs && !("endAfter" in msgs) {
+			body = '{"url":"{}","messages":"{}", "timeout":"{}"}'.fmt([wsurl, msgs.messages, msgs.timeout])
+	} 
+	else if !("timeout" in msgs) && !("endAfter" in msgs) {
+			body = '{"url":"{}","messages":"{}"}'.fmt([wsurl, msgs.messages])
+	}
+    method = "post"
+    headers = {
+        "Content-Type": "application/json",
+    }
+    return $.http_request(method, url, headers, body).text
+}
+
+MarebolDB = (id) {
+	let funcs = {
+		get: (v) {
+			let json = websocket("wss://" + id + ".id.repl.co/api", {
+			messages: ["/get " + v],
+			timeout: 200
+			})
+			return json
+		},
+		set: (v1, v2) {
+			let json = websocket("wss://" + id + ".id.repl.co/api", {
+			messages: ["/set " + v1 + " " + v2],
+			timeout: 200
+			})
+			return json
+		},
+		delete: (v) {
+			let json = websocket("wss://" + id + ".id.repl.co/api", {
+			messages: ["/delete " + v],
+			timeout: 200
+			})
+			return json
+		},
+		listall: (){
+			let json = websocket("wss://" + id + ".id.repl.co/api", {
+			messages: ["/listall"],
+			timeout: 200
+			})
+			return json
+		}
+	}
+	return funcs
+}
+
+
+get_package = (package) {
+  decode = (package) {
+      url = "https://spghtt-decode.seven7four4.repl.co"
+      body = '{"package":"{}"}'.fmt([package.trim("\n")])
+      method = "post"
+      headers = {
+          "Content-Type": "application/json",
+      }
+      return $.http_request(method, url, headers, body).text.split(",")
+  }
+
+  let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
+  let data = db.get(package)
+  let package_d = decode(data)
+
+  return {
+    name: package_d[0],
+    file: package_d[1]
+  }
+}
+
+encode = (package) {
+   url = "https://spghtt-decode.seven7four4.repl.co/encode"
+   body = '{"package":"{}"}'.fmt([$.b64encode(package)])
+   method = "post"
+   headers = {
+	"Content-Type": "application/json",
+   }
+   return $.http_request(method, url, headers, body).text
+}
+
+let command = $.get_input("Action: (publish, install, uninstall): ")
+let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
+
+match command {
+  =="install\r": (){
+    let package = $.get_input("What package would you like to install? ")
+	package_d = get_package(package.trim("\r"))
+    path("libraries/" + package.trim("\r")).mkdir()
+    $.writefile("./libraries/" + package.trim("\r") + "/" + package_d.name, $.b64decode($.b64decode(package_d.file)))
+  }(),
+  
+  =="uninstall\r": (){
+	let package = $.get_input("What package would you like to uninstall? ")
+	$.rmdir_all("libraries/" + package.trim("\r"))
+  }(),
+  
+  =="publish\r": (){
+		package = $.get_input("What directory would you like to publish? ")
+		pname = $.get_input("What should the package be named? ")
+		package2 = package.trim("\r")
+			for file in $.readdir(package2) {
+				let encoded = encode(file + "|" + $.b64encode(path(package2 + "/" + file).read()))
+				db.set(pname.trim("\r"), encoded)
+		}
+  }()
+  
+  else: $.print("Invalid action!")
+}
