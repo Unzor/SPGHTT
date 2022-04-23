@@ -55,6 +55,8 @@ MarebolDB = (id) {
 	return funcs
 }
 
+let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
+
 
 get_package = (package) {
   decode = (package) {
@@ -64,53 +66,109 @@ get_package = (package) {
       headers = {
           "Content-Type": "application/json",
       }
-      return $.http_request(method, url, headers, body).text.split(",")
+      return $.http_request(method, url, headers, body).text
   }
-
-  let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
-  let data = db.get(package)
-  let package_d = decode(data)
-
-  return {
-    name: package_d[0],
-    file: package_d[1]
+  let array = decode(db.get(package))
+  let new_a = []
+  $.writefile("temp_.txt", '{"array": {}}'.fmt([array]))
+  let json = $.readfile("temp_.txt", "json").array
+  path("temp_.txt").delete()
+  if (!$.fileexists("libraries/" + package)) {
+  path("libraries/" + package).mkdir()
   }
+  for entry in json {
+	if (entry != "") {
+	new_a.push(entry)
+	}
+  }
+  json = new_a
+  json.map(x => $.writefile("libraries/" + package + "/" + x.split("|")[0], x.split("|")[1]))  
 }
 
-encode = (package) {
-   url = "https://spghtt-decode.seven7four4.repl.co/encode"
-   body = '{"package":"{}"}'.fmt([$.b64encode(package)])
-   method = "post"
-   headers = {
-	"Content-Type": "application/json",
-   }
-   return $.http_request(method, url, headers, body).text
+let command = $.get_input("Action: (publish, install, uninstall, unpublish): ")
+
+let package_exists = (package) {
+	return db.get(package) != ""
 }
 
-let command = $.get_input("Action: (publish, install, uninstall): ")
-let db = MarebolDB("2e4ba202-d450-4919-a54d-15ca24429a1f")
+let get_password = (package) {
+	return db.get(package + "_pass")
+}
+
+let password_exists = (package) {
+	return db.get(package + "_pass") != ""
+}
 
 match command {
   =="install\r": (){
     let package = $.get_input("What package would you like to install? ")
-    package_d = get_package(package.trim("\r"))
-    path("libraries/" + package.trim("\r")).mkdir()
-    $.writefile("./libraries/" + package.trim("\r") + "/" + package_d.name, $.b64decode($.b64decode(package_d.file)))
+		if (package_exists(package.trim("\r"))) {
+			if ($.fileexists("libraries") == false) {
+				path("./libraries").mkdir()
+			}
+		get_package(package.trim("\r"))
+	} else {
+	$.print("Package does not exist!")
+	}
   }(),
   
   =="uninstall\r": (){
 	let package = $.get_input("What package would you like to uninstall? ")
-	path("libraries/" + package.trim("\r")).rmdir(true)
+	if ($.fileexists("libraries/" + package.trim("\r"))) {
+		path("libraries/" + package.trim("\r")).rmdir(true)
+	} else {
+	$.print("Package not installed!")
+	}
   }(),
   
   =="publish\r": (){
 		package = $.get_input("What directory would you like to publish? ")
 		pname = $.get_input("What should the package be named? ")
-		package2 = package.trim("\r")
-			for file in $.readdir(package2) {
-				let encoded = encode(file + "|" + $.b64encode(path(package2 + "/" + file).read()))
-				db.set(pname.trim("\r"), encoded)
+		if (password_exists(package.trim("\r"))) {
+				let pass = $.get_input("What should the password be? ")
+				db.set(package.trim("\r") + "_pass", pass.trim("\r"))
+					let enc = "";
+					package2 = package.trim("\r")
+					for file in $.readdir(package2) {
+						let encoded = $.b64encode(file + "|" + path(package2 + "/" + file).read())
+						enc += encoded + "|"
+					}
+					enc = $.b64encode(enc);
+					db.set(package2, enc)
+		} else {
+				let pass = get_password(package.trim("\r"))
+				let guess = $.get_input("What is the password of this package? (this package is already published) ") 
+				if (guess.trim("\r") == pass) {
+					let enc = "";
+					package2 = package.trim("\r")
+					for file in $.readdir(package2) {
+						let encoded = $.b64encode(file + "|" + path(package2 + "/" + file).read())
+						enc += encoded + "|"
+					}
+					enc = $.b64encode(enc);
+					db.set(package2, enc)
+				} else {
+				$.print("Wrong password!")
+				}
 		}
-  }()
+  }(),
+   =="unpublish\r": (){
+		let package = $.get_input("What package would you like to unpublish? ")
+		package = package.trim("\r")
+		if (package_exists(package)) {
+			let guess = $.get_input("For security, enter the password you made for this package: ")
+			guess = guess.trim("\r")
+			let pass = get_password(package.trim("\r"))
+				if (pass == guess) {
+					db.delete(package)
+					db.delete(package + "_pass")
+				} else {
+					$.print("Wrong password!")
+				}
+		}
+   else {
+		$.print("Package does not exist!")
+   }
+   }()
   else: $.print("Invalid action!")
 }
