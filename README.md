@@ -13,3 +13,11 @@ let hworld = import hello_world
 hworld()
 ```
 Now run "spwn build example.spwn -l", and it should say "Hello World!"
+
+# Library Usage
+#### note: the library was meant for use in [Ash](https://github.com/arc-spwn/ash)
+```js
+let SPGHTT = import spghtt
+SPGHTT.action("install", "package_here")
+// or
+SPGHTT.action("publish", "package_dir_here", "package_name_here")
