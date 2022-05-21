@@ -21,3 +21,4 @@ let SPGHTT = import spghtt
 SPGHTT.action("install", "package_here")
 // or
 SPGHTT.action("publish", "package_dir_here", "package_name_here")
+```
